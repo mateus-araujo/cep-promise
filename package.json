@@ -39,7 +39,8 @@
     "viacep",
     "brasilapi",
     "widenet",
-    "apicep"
+    "apicep",
+    "opencep"
   ],
   "homepage": "https://github.com/BrasilAPI/cep-promise",
   "devDependencies": {

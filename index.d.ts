@@ -23,6 +23,7 @@ declare module "cep-promise" {
    * | brasilapi    | ✅      | ✅      |
    * | viacep       | ✅      | ✅      |
    * | widenet      | ✅      | ✅      |
+   * | opencep      | ✅      | ✅      |
    * | correios     | ❌      | ✅      |
    * | correios-alt | ❌      | ✅      |
    */
@@ -33,6 +34,8 @@ declare module "cep-promise" {
     readonly viacep: "viacep";
     /** Supported in both **Node.js** and **Browser** environments. */
     readonly widenet: "widenet";
+    /** Supported in both **Node.js** and **Browser** environments. */
+    readonly widenet: "opencep";
     /** Supported only in **Node.js** environment. */
     readonly correios: "correios";
     /** Supported only in **Node.js** environment. */
@@ -52,6 +55,7 @@ declare module "cep-promise" {
      * | brasilapi    | ✅      | ✅      |
      * | viacep       | ✅      | ✅      |
      * | widenet      | ✅      | ✅      |
+     * | opencep      | ✅      | ✅      |
      * | correios     | ❌      | ✅      |
      * | correios-alt | ❌      | ✅      |
      */

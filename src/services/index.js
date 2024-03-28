@@ -3,6 +3,7 @@ import CorreiosAlt from './correios-alt'
 import ViaCep from './viacep'
 import WideNet from './widenet'
 import BrasilAPI from './brasilapi.js'
+import OpenCep from './opencep'
 
 export function getAvailableServices () {
   const isBrowser = typeof window !== 'undefined'
@@ -11,7 +12,8 @@ export function getAvailableServices () {
     return {
       viacep: ViaCep,
       widenet: WideNet,
-      brasilapi: BrasilAPI
+      brasilapi: BrasilAPI,
+      opencep: OpenCep
     }
   }
 
@@ -20,6 +22,7 @@ export function getAvailableServices () {
     'correios-alt': CorreiosAlt,
     viacep: ViaCep,
     widenet: WideNet,
-    brasilapi: BrasilAPI
+    brasilapi: BrasilAPI,
+    opencep: OpenCep
   }
 }
