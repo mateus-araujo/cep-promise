@@ -3,8 +3,11 @@
 import CepPromiseError from './errors/cep-promise.js'
 import { getAvailableServices } from './services/index.js'
 import Promise from './utils/promise-any.js'
+import findAddress from './find-address.js'
 
 const CEP_SIZE = 8
+
+export { findAddress }
 
 export default function (cepRawValue, configurations = {}) {
   return Promise.resolve(cepRawValue)
