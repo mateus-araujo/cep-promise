@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('node-fetch')) :
-  typeof define === 'function' && define.amd ? define(['node-fetch'], factory) :
-  (global = global || self, global.cep = factory(global.fetch));
-}(this, (function (fetch) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('node-fetch')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'node-fetch'], factory) :
+  (global = global || self, factory(global.cep = {}, global.fetch));
+}(this, (function (exports, fetch) { 'use strict';
 
   fetch = fetch && Object.prototype.hasOwnProperty.call(fetch, 'default') ? fetch['default'] : fetch;
 
@@ -20,6 +20,42 @@
     }
 
     return _typeof(obj);
+  }
+
+  function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    try {
+      var info = gen[key](arg);
+      var value = info.value;
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    if (info.done) {
+      resolve(value);
+    } else {
+      Promise.resolve(value).then(_next, _throw);
+    }
+  }
+
+  function _asyncToGenerator(fn) {
+    return function () {
+      var self = this,
+          args = arguments;
+      return new Promise(function (resolve, reject) {
+        var gen = fn.apply(self, args);
+
+        function _next(value) {
+          asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+        }
+
+        function _throw(err) {
+          asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+        }
+
+        _next(undefined);
+      });
+    };
   }
 
   function _classCallCheck(instance, Constructor) {
@@ -593,6 +629,142 @@
     throw serviceError;
   }
 
+  function normalizeString(text) {
+    if (!text) return '';
+    return text.normalize('NFD').replace(/([\u0300-\u036f]|[^0-9a-zA-Z\s])/g, '').split(' ').join(' ').trim() || '';
+  }
+
+  function compareStrings(text, compareText) {
+    var textNormalized = normalizeString(text);
+    var compareTextNormalized = normalizeString(compareText);
+    return textNormalized === compareTextNormalized || textNormalized.includes(compareTextNormalized) || compareTextNormalized.includes(text);
+  }
+
+  function convertViaCEPAddress(address) {
+    return {
+      cep: address.cep,
+      street: address.logradouro,
+      complement: address.complemento,
+      neighborhood: address.bairro,
+      city: address.localidade,
+      state: address.uf,
+      ibge: address.ibge,
+      gia: address.gia,
+      ddd: address.ddd,
+      siafi: address.siafi
+    };
+  }
+
+  function isNumberAtComplementPattern(complement, number) {
+    if (!complement || !number) return false;
+    var numberStr = number.toString();
+    var patterns = [new RegExp("\\b".concat(numberStr, "\\b")), new RegExp("\\b".concat(numberStr, "-\\d+\\b")), new RegExp("\\b\\d+-".concat(numberStr, "\\b"))];
+    return patterns.some(function (pattern) {
+      return pattern.test(complement);
+    });
+  }
+
+  function findAddressByNeighborhoodOrCity(addresses, neighborhood, city) {
+    return neighborhood ? addresses.find(function (address) {
+      return compareStrings(address.neighborhood, neighborhood);
+    }) : city && addresses.some(function (address) {
+      return address.city === city;
+    }) ? addresses.find(function (address) {
+      return compareStrings(address.city, city);
+    }) : undefined;
+  }
+
+  function selectAddressFromList(addresses, number, neighborhood, city) {
+    var addressesList = neighborhood ? addresses.filter(function (address) {
+      return compareStrings(address.neighborhood, neighborhood);
+    }) : addresses;
+    var selectedAddress = number ? addressesList.some(function (address) {
+      return address.street.includes(number);
+    }) ? addressesList.find(function (address) {
+      return address.street.includes(number);
+    }) : addressesList.some(function (address) {
+      return address.complement.includes('lado');
+    }) ? Number(number) % 2 === 0 ? addressesList.filter(function (address) {
+      return address.complement.includes('lado par');
+    }).find(function (address) {
+      return isNumberAtComplementPattern(address.complement, Number(number));
+    }) : addressesList.filter(function (address) {
+      return address.complement.includes('lado ímpar');
+    }).find(function (address) {
+      return isNumberAtComplementPattern(address.complement, Number(number));
+    }) : addressesList.some(function (address) {
+      return isNumberAtComplementPattern(address.complement, Number(number));
+    }) ? addressesList.find(function (address) {
+      return isNumberAtComplementPattern(address.complement, Number(number));
+    }) : findAddressByNeighborhoodOrCity(addresses, neighborhood, city) : findAddressByNeighborhoodOrCity(addresses, neighborhood, city);
+    return {
+      addresses: addresses,
+      selectedAddress: selectedAddress
+    };
+  }
+
+  function fetchViaCepAddressSearch(state, city, street, configurations) {
+    var url = 'https://viacep.com.br/ws/' + state + '/' + normalizeString(city) + '/' + normalizeString(street && street.replace('Av.', 'Avenida').replace('R.', 'Rua')) + '/json/';
+    var options = {
+      method: 'GET',
+      mode: 'cors',
+      headers: {
+        'content-type': 'application/json;charset=utf-8'
+      },
+      timeout: configurations.timeout || 30000
+    };
+
+    if (typeof window === 'undefined') {
+      options.headers['user-agent'] = 'cep-promise';
+    }
+
+    return fetch(url, options).then(analyzeAndParseResponse$3).then(checkForViaCepError$1).then(extractAddressesFromResponse)["catch"](throwApplicationError$5);
+  }
+
+  function analyzeAndParseResponse$3(response) {
+    if (response.ok) {
+      return response.json();
+    }
+
+    throw Error('Erro ao se conectar com o serviço ViaCEP.');
+  }
+
+  function checkForViaCepError$1(response) {
+    if (Array.isArray(response) && response.length === 0) {
+      throw new Error('Nenhum endereço encontrado na base do ViaCEP.');
+    }
+
+    return response;
+  }
+
+  function extractAddressesFromResponse(responseArray) {
+    if (!Array.isArray(responseArray)) {
+      throw new Error('Resposta inválida do ViaCEP.');
+    }
+
+    return responseArray.map(function (address) {
+      var converted = convertViaCEPAddress(address); // Normalize CEP by removing dash
+
+      converted.cep = converted.cep.replace('-', '');
+      return Object.assign({}, converted, {
+        service: 'viacep'
+      });
+    });
+  }
+
+  function throwApplicationError$5(error) {
+    var serviceError = new ServiceError({
+      message: error.message,
+      service: 'viacep'
+    });
+
+    if (error.name === 'FetchError') {
+      serviceError.message = 'Erro ao se conectar com o serviço ViaCEP.';
+    }
+
+    throw serviceError;
+  }
+
   function getAvailableServices() {
     var isBrowser = typeof window !== 'undefined';
 
@@ -612,6 +784,19 @@
       brasilapi: fetchBrasilAPIService
     };
   }
+  function getAvailableAddressSearchServices() {
+    var isBrowser = typeof window !== 'undefined';
+
+    if (isBrowser) {
+      return {
+        viacep: fetchViaCepAddressSearch
+      };
+    }
+
+    return {
+      viacep: fetchViaCepAddressSearch
+    };
+  }
 
   var reverse = function reverse(promise) {
     return new Promise(function (resolve, reject) {
@@ -625,6 +810,140 @@
 
   var Promise$1 = Promise;
 
+  function findAddress(_x) {
+    return _findAddress.apply(this, arguments);
+  }
+
+  function _findAddress() {
+    _findAddress = _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee(_ref) {
+      var state, city, street, number, neighborhood, _ref$providers, providers, addressServices, servicePromises, addresses, _selectAddressFromLis, selectedAddress;
+
+      return regeneratorRuntime.wrap(function _callee$(_context) {
+        while (1) {
+          switch (_context.prev = _context.next) {
+            case 0:
+              state = _ref.state, city = _ref.city, street = _ref.street, number = _ref.number, neighborhood = _ref.neighborhood, _ref$providers = _ref.providers, providers = _ref$providers === void 0 ? [] : _ref$providers;
+              validateInput({
+                state: state,
+                city: city,
+                street: street
+              });
+              addressServices = getAvailableAddressSearchServices();
+
+              if (providers.length === 0) {
+                servicePromises = Object.entries(addressServices).map(function (entry) {
+                  return entry[1](state, city, street, {
+                    timeout: 30000
+                  })["catch"](function (error) {
+                    throw new Error(JSON.stringify({
+                      message: error.message,
+                      service: entry[0]
+                    }));
+                  });
+                });
+              } else {
+                servicePromises = providers.map(function (provider) {
+                  if (!addressServices[provider]) {
+                    throw new CepPromiseError({
+                      message: "O provider \"".concat(provider, "\" n\xE3o suporta busca por endere\xE7o."),
+                      type: 'validation_error',
+                      errors: [{
+                        message: "Provider \"".concat(provider, "\" inv\xE1lido para busca de endere\xE7o."),
+                        service: 'providers_validation'
+                      }]
+                    });
+                  }
+
+                  return addressServices[provider](state, city, street, {
+                    timeout: 30000
+                  })["catch"](function (error) {
+                    throw new Error(JSON.stringify({
+                      message: error.message,
+                      service: provider
+                    }));
+                  });
+                });
+              }
+
+              _context.prev = 4;
+              _context.next = 7;
+              return Promise$1.any(servicePromises);
+
+            case 7:
+              addresses = _context.sent;
+              _selectAddressFromLis = selectAddressFromList(addresses, number, neighborhood, city), selectedAddress = _selectAddressFromLis.selectedAddress;
+              return _context.abrupt("return", {
+                addresses: addresses,
+                selectedAddress: selectedAddress
+              });
+
+            case 12:
+              _context.prev = 12;
+              _context.t0 = _context["catch"](4);
+
+              if (!(_context.t0.length !== undefined)) {
+                _context.next = 16;
+                break;
+              }
+
+              throw new CepPromiseError({
+                message: 'Todos os serviços de busca de endereço retornaram erro.',
+                type: 'service_error',
+                errors: _context.t0
+              });
+
+            case 16:
+              throw _context.t0;
+
+            case 17:
+            case "end":
+              return _context.stop();
+          }
+        }
+      }, _callee, null, [[4, 12]]);
+    }));
+    return _findAddress.apply(this, arguments);
+  }
+
+  function validateInput(_ref2) {
+    var state = _ref2.state,
+        city = _ref2.city,
+        street = _ref2.street;
+
+    if (!state || state.length !== 2) {
+      throw new CepPromiseError({
+        message: 'Estado (UF) é obrigatório e deve ter 2 caracteres.',
+        type: 'validation_error',
+        errors: [{
+          message: 'Estado inválido.',
+          service: 'address_validation'
+        }]
+      });
+    }
+
+    if (!city || city.length < 3) {
+      throw new CepPromiseError({
+        message: 'Cidade é obrigatória e deve ter pelo menos 3 caracteres.',
+        type: 'validation_error',
+        errors: [{
+          message: 'Cidade inválida.',
+          service: 'address_validation'
+        }]
+      });
+    }
+
+    if (!street || street.length < 3) {
+      throw new CepPromiseError({
+        message: 'Logradouro é obrigatório e deve ter pelo menos 3 caracteres.',
+        type: 'validation_error',
+        errors: [{
+          message: 'Logradouro inválido.',
+          service: 'address_validation'
+        }]
+      });
+    }
+  }
+
   var CEP_SIZE = 8;
   function cepPromise (cepRawValue) {
     var configurations = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
@@ -634,7 +953,7 @@
       return cepRawValue;
     }).then(removeSpecialCharacters).then(validateInputLength).then(leftPadWithZeros).then(function (cepWithLeftPad) {
       return fetchCepFromServices(cepWithLeftPad, configurations);
-    })["catch"](handleServicesError)["catch"](throwApplicationError$5);
+    })["catch"](handleServicesError)["catch"](throwApplicationError$6);
   }
 
   function validateProviders(providers) {
@@ -742,7 +1061,7 @@
     throw aggregatedErrors;
   }
 
-  function throwApplicationError$5(_ref) {
+  function throwApplicationError$6(_ref) {
     var message = _ref.message,
         type = _ref.type,
         errors = _ref.errors;
@@ -753,6 +1072,9 @@
     });
   }
 
-  return cepPromise;
+  exports.default = cepPromise;
+  exports.findAddress = findAddress;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
