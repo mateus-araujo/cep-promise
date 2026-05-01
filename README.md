@@ -33,6 +33,7 @@
  * Sempre retorna a resposta mais rápida por fazer as consultas de forma concorrente.
  * Sem limites de uso (rate limits) conhecidos.
  * Interface de Promise extremamente simples.
+ * **Nova funcionalidade**: Busca de endereço por estado, cidade e rua (não apenas por CEP).
  * Suporte ao Node.js `10.x`, `11.x`, `12.x`, `13.x`, `14.x` e `@stable`.
  * Suporte ao Node.js `4.x`, `5.x`, `6.x`, `7.x`, `8.x`, `9.x`, até cep-promise versão `3.0.9`.
  * Suporte ao Node.js `0.10.x` e `0.12.x` até cep-promise versão `2.0.8`.
@@ -138,6 +139,47 @@ import cep from 'cep-promise'
 cep('5010000', { timeout: 5000, providers: ['brasilapi'] })
   .then(console.log)
 
+```
+
+### Busca de endereço por estado, cidade e rua
+
+Com a função `findAddress` é possível buscar endereços sem saber o CEP, apenas informando estado, cidade e rua. A função utiliza múltiplos serviços (providers) concorrentemente e retorna uma lista de endereços encontrados e o endereço selecionado baseado no número e/ou bairro informado.
+
+```js
+import { findAddress } from 'cep-promise'
+
+// Busca básica
+findAddress({
+  state: 'SP',
+  city: 'São Paulo',
+  street: 'Rua Caiubí'
+}).then(console.log)
+
+// Busca com número e bairro para seleção mais precisa
+findAddress({
+  state: 'CE',
+  city: 'Fortaleza',
+  street: 'Rua Ana Bilhar',
+  number: '987',
+  neighborhood: 'Meireles'
+}).then(console.log)
+
+// Especificando providers (opcional)
+findAddress({
+  state: 'SP',
+  city: 'São Paulo',
+  street: 'Rua Caiubí',
+  providers: ['viacep']
+}).then(console.log)
+
+// Resultado:
+// {
+//   addresses: [
+//     { cep: '05010000', street: 'Rua Caiubí', complement: '', neighborhood: 'Perdizes', city: 'São Paulo', state: 'SP', ... },
+//     ...
+//   ],
+//   selectedAddress: { cep: '05010000', street: 'Rua Caiubí', complement: '', neighborhood: 'Perdizes', city: 'São Paulo', state: 'SP', ... }
+// }
 ```
 
 ### Instalação
