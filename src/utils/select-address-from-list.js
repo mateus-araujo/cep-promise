@@ -15,18 +15,18 @@ function findAddressByNeighborhoodOrCity (addresses, neighborhood, city) {
 
 function findAddressByNumber (addressesList, number) {
   // First, try to find address where street includes the number
-  if (addressesList.some(address => address.street.includes(number))) {
-    return addressesList.find(address => address.street.includes(number))
+  if (addressesList.some(address => address.street && address.street.includes(number))) {
+    return addressesList.find(address => address.street && address.street.includes(number))
   }
 
   // Check if any address has 'lado' in complement
-  if (addressesList.some(address => address.complement.includes('lado'))) {
+  if (addressesList.some(address => address.complement && address.complement.includes('lado'))) {
     const isEven = Number(number) % 2 === 0
 
     if (isEven) {
       // Filter for even side addresses
       const evenAddresses = addressesList.filter(address =>
-        address.complement.includes('lado par')
+        address.complement && address.complement.includes('lado par')
       )
       return evenAddresses.find(address =>
         isNumberAtComplementPattern(address.complement, Number(number))
@@ -34,7 +34,7 @@ function findAddressByNumber (addressesList, number) {
     } else {
       // Filter for odd side addresses
       const oddAddresses = addressesList.filter(address =>
-        address.complement.includes('lado ímpar')
+        address.complement && address.complement.includes('lado ímpar')
       )
       return oddAddresses.find(address =>
         isNumberAtComplementPattern(address.complement, Number(number))
@@ -54,7 +54,7 @@ function findAddressByNumber (addressesList, number) {
 
 export function selectAddressFromList (addresses, number, neighborhood, city) {
   // Filter by neighborhood if provided
-  const addressesList = neighborhood
+  const filteredAddresses = neighborhood
     ? addresses.filter(address => compareStrings(address.neighborhood, neighborhood))
     : addresses
 
@@ -62,18 +62,18 @@ export function selectAddressFromList (addresses, number, neighborhood, city) {
 
   if (number) {
     // Try to find address by number
-    selectedAddress = findAddressByNumber(addressesList, number)
+    selectedAddress = findAddressByNumber(filteredAddresses, number)
 
     // If not found by number, try neighborhood/city
     if (!selectedAddress) {
-      selectedAddress = findAddressByNeighborhoodOrCity(addresses, neighborhood, city)
+      selectedAddress = findAddressByNeighborhoodOrCity(filteredAddresses, neighborhood, city)
     }
   } else {
     // No number provided, use neighborhood/city
-    selectedAddress = findAddressByNeighborhoodOrCity(addresses, neighborhood, city)
+    selectedAddress = findAddressByNeighborhoodOrCity(filteredAddresses, neighborhood, city)
   }
 
-  return { addresses, selectedAddress }
+  return { addresses: filteredAddresses, selectedAddress }
 }
 
 export default selectAddressFromList
