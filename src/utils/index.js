@@ -1,0 +1,5 @@
+export { normalizeString } from './normalize-string.js'
+export { compareStrings } from './compare-strings.js'
+export { convertViaCEPAddress } from './convert-via-cep-address.js'
+export { isNumberAtComplementPattern } from './is-number-at-complement-pattern.js'
+export { selectAddressFromList } from './select-address-from-list.js'
