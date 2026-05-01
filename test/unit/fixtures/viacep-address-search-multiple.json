@@ -1,0 +1,32 @@
+[
+  {
+    "cep": "60160-010",
+    "logradouro": "Rua Ana Bilhar",
+    "complemento": "de 501/502 ao fim",
+    "unidade": "",
+    "bairro": "Meireles",
+    "localidade": "Fortaleza",
+    "uf": "CE",
+    "estado": "Ceará",
+    "regiao": "Nordeste",
+    "ibge": "2304400",
+    "gia": "",
+    "ddd": "85",
+    "siafi": "1783"
+  },
+  {
+    "cep": "60160-020",
+    "logradouro": "Rua Ana Bilhar",
+    "complemento": "de 505/506 ao fim",
+    "unidade": "",
+    "bairro": "Meireles",
+    "localidade": "Fortaleza",
+    "uf": "CE",
+    "estado": "Ceará",
+    "regiao": "Nordeste",
+    "ibge": "2304400",
+    "gia": "",
+    "ddd": "85",
+    "siafi": "1783"
+  }
+]
