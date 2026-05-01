@@ -3,6 +3,7 @@ import CorreiosAlt from './correios-alt'
 import ViaCep from './viacep'
 import WideNet from './widenet'
 import BrasilAPI from './brasilapi.js'
+import ViaCepAddressSearch from './viacep-address-search.js'
 
 export function getAvailableServices () {
   const isBrowser = typeof window !== 'undefined'
@@ -21,5 +22,19 @@ export function getAvailableServices () {
     viacep: ViaCep,
     widenet: WideNet,
     brasilapi: BrasilAPI
+  }
+}
+
+export function getAvailableAddressSearchServices () {
+  const isBrowser = typeof window !== 'undefined'
+
+  if (isBrowser) {
+    return {
+      viacep: ViaCepAddressSearch
+    }
+  }
+
+  return {
+    viacep: ViaCepAddressSearch
   }
 }
